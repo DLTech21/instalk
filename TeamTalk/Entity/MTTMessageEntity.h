@@ -83,6 +83,7 @@ typedef NS_ENUM(NSUInteger, DDMessageState)
 -(BOOL)isImageMessage;
 -(BOOL)isVoiceMessage;
 -(BOOL)isLocationMessage;
+-(BOOL)isVideoMessage;
 -(BOOL)isSendBySelf;
 +(MTTMessageEntity *)makeMessageFromPB:(MsgInfo *)info SessionType:(SessionType)sessionType;
 +(MTTMessageEntity *)makeMessageFromPBData:(IMMsgData *)data;

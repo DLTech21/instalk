@@ -233,6 +233,9 @@ static NSUInteger const showPromptGap = 300;
     else if(message.msgContentType == DDMEssageTypeLocation){
         return 150;
     }
+    else if(message.msgContentType == DDMEssageTypeVideo){
+        return 170;
+    }
     else
     {
         return 135;

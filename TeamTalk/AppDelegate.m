@@ -14,7 +14,7 @@
 #import "NSDictionary+Safe.h"
 #import <Fabric/Fabric.h>
 //#import <Crashlytics/Crashlytics.h>
-#define MAP_AK @"xdNbFSrVXeS5pzG5cpnLvfhZ"
+#define MAP_AK @"EDCPh81kZys7O0KYjSGOZBQHM2f1jMDb"
 #define AppKey @"272bc3eaa8dc"
 #define AppSecret @"a10211aac04334b49d39b779a350621e"
 #import <BaiduMapAPI_Base/BMKBaseComponent.h>
@@ -22,7 +22,8 @@
 #import "GeTuiSdk.h"
 #import "GTMBase64.h"
 #import "DLAppUtil.h"
-@interface AppDelegate ()<GeTuiSdkDelegate>
+#import "MTTUserEntity.h"
+@interface AppDelegate ()<GeTuiSdkDelegate, BMKGeneralDelegate>
 
 @end
 
@@ -34,7 +35,7 @@
 //    [Fabric with:@[CrashlyticsKit]];
     [GeTuiSdk startSdkWithAppId:kGtAppId appKey:kGtAppKey appSecret:kGtAppSecret delegate:self];
     BMKMapManager* mapManager = [[BMKMapManager alloc]init];
-    BOOL ret = [mapManager start:MAP_AK  generalDelegate:nil];
+    BOOL ret = [mapManager start:MAP_AK  generalDelegate:self];
     if (!ret) {
         debugLog(@"manager start failed!");
     }
@@ -61,7 +62,7 @@
                                                object:nil];
     [self loginStateChange:nil];
     [self.window makeKeyAndVisible];
-    
+        
     return YES;
 }
 
@@ -74,6 +75,9 @@
             _welcomeViewController = [[MTTRootViewController alloc]init];
             
         }
+        MTTUserEntity *user = [[MTTUserEntity alloc] initWithUserID:getUserID name:getUserPhone nick:getUserNickname avatar:getUserAvatar userRole:1 userUpdated:1];
+        TheRuntime.user = user;
+        [TheRuntime updateData];
 //        _mainNav = [[UINavigationController alloc] initWithRootViewController:_welcomeViewController];
         self.window.rootViewController = _welcomeViewController;
     }
@@ -233,5 +237,26 @@
     }
     
     NSLog(@"\n>>>[GexinSdk SetModeOff]:%@\n\n", isModeOff ? @"开启" : @"关闭");
+}
+
+- (void)onGetNetworkState:(int)iError
+{
+    if (0 == iError) {
+        NSLog(@"联网成功");
+    }
+    else{
+        NSLog(@"onGetNetworkState %d",iError);
+    }
+    
+}
+
+- (void)onGetPermissionState:(int)iError
+{
+    if (0 == iError) {
+        NSLog(@"授权成功");
+    }
+    else {
+        NSLog(@"onGetPermissionState %d",iError);
+    }
 }
 @end

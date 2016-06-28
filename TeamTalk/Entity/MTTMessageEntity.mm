@@ -194,6 +194,13 @@
     }
     return NO;
 }
+-(BOOL)isVideoMessage
+{
+    if (self.msgContentType == DDMEssageTypeVideo) {
+        return YES;
+    }
+    return NO;
+}
 -(BOOL)isVoiceMessage
 {
     if (self.msgType == MsgTypeMsgTypeGroupAudio || self.msgType == MsgTypeMsgTypeSingleAudio) {

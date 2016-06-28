@@ -17,6 +17,7 @@
 #import "DDChatTextCell.h"
 #import "DDChatVoiceCell.h"
 #import "DDChatImageCell.h"
+#import "DDChatVideoCell.h"
 #import "DDChattingEditViewController.h"
 #import "DDPromptCell.h"
 #import "UIView+Addition.h"
@@ -50,6 +51,7 @@
 #import "AFHTTPSessionManager.h"
 #import "ModifyPassAPI.h"
 #import "NSString+Additions.h"
+#import "VideoPlayViewController.h"
 
 typedef NS_ENUM(NSUInteger, DDBottomShowComponent)
 {
@@ -793,6 +795,10 @@ typedef NS_ENUM(NSUInteger, PanelStatus)
         {
             cell = [self p_locationCell_tableView:tableView cellForRowAtIndexPath:indexPath message:message];
         }
+        else if (message.msgContentType == DDMEssageTypeVideo)
+        {
+            cell = [self p_videoCell_tableView:tableView cellForRowAtIndexPath:indexPath message:message];
+        }
         else
         {
             cell = [self p_textCell_tableView:tableView cellForRowAtIndexPath:indexPath message:message];
@@ -1291,43 +1297,52 @@ typedef NS_ENUM(NSUInteger, PanelStatus)
     }];
     
     [cell setTapInBubble:^{
-//        NSString *originUrl =  message.msgContent;
-//        originUrl = [originUrl stringByReplacingOccurrencesOfString:DD_MESSAGE_IMAGE_PREFIX withString:@""];
-//        originUrl = [originUrl stringByReplacingOccurrencesOfString:DD_MESSAGE_IMAGE_SUFFIX withString:@""];
-//        NSURL* url = [NSURL URLWithString:originUrl];
-//        NSMutableArray *photos = [[NSMutableArray alloc]init];
-//        [self.module.showingMessages enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-//            if ([obj isKindOfClass:[MTTMessageEntity class]])
-//            {
-//                MTTMessageEntity* message = (MTTMessageEntity*)obj;
-//                NSURL* url;
-//                if(message.msgContentType == DDMessageTypeImage){
-//                    NSString* urlString = message.msgContent;
-//                    urlString = [urlString stringByReplacingOccurrencesOfString:DD_MESSAGE_IMAGE_PREFIX withString:@""];
-//                    urlString = [urlString stringByReplacingOccurrencesOfString:DD_MESSAGE_IMAGE_SUFFIX withString:@""];
-//                    if([urlString rangeOfString:@"\"local\" : "].length >0){
-//                        NSData* data = [urlString dataUsingEncoding:NSUTF8StringEncoding];
-//                        NSDictionary* dic = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-//                        url = [NSURL URLWithString:dic[@"url"]];
-//                    }else{
-//                        url = [NSURL URLWithString:urlString];
-//                    }
-//                    if(url){
-//                        [photos addObject:url];
-//                    }
-//                }
-//            }
-//        }];
-//        DDChatImagePreviewViewController *preViewControll = [DDChatImagePreviewViewController new];
-//        NSMutableArray *array = [NSMutableArray array];
-//        [photos enumerateObjectsUsingBlock:^(NSURL *obj, NSUInteger idx, BOOL *stop) {
-//            [array addObject:[MWPhoto photoWithURL:obj]];
-//        }];
-//        preViewControll.photos=array;
-//        preViewControll.index=[photos indexOfObject:url];
-//        //        [preViewControll addChildViewController:preViewControll];
-//        
-//        [self presentViewController:preViewControll animated:YES completion:NULL];
+    }];
+    return cell;
+}
+
+- (UITableViewCell*)p_videoCell_tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath message:(MTTMessageEntity*)message
+{
+    static NSString* identifier = @"DDVideoCellIdentifier";
+    DDChatVideoCell* cell = (DDChatVideoCell*)[tableView dequeueReusableCellWithIdentifier:identifier];
+    if (!cell)
+    {
+        cell = [[DDChatVideoCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:identifier];
+    }
+    cell.session =self.module.MTTSessionEntity;
+    NSString* myUserID =[RuntimeStatus instance].user.objID;
+    if ([message.senderId isEqualToString:myUserID])
+    {
+        [cell setLocation:DDBubbleRight];
+    }
+    else
+    {
+        [cell setLocation:DDBubbleLeft];
+    }
+    
+    [[MTTDatabaseUtil instance] updateMessageForMessage:message completion:^(BOOL result) {
+        
+    }];
+    [cell setContent:message];
+    __weak DDChatVideoCell* weakCell = cell;
+    
+    [cell setSendAgain:^{
+        [weakCell sendVideoAgain:message];
+        
+    }];
+    
+    [cell setDeleteIt:^{
+        [weakCell deleteMessage:message];
+        
+    }];
+    
+    [cell setTapInBubble:^{
+        NSDictionary* messageContent = [NSDictionary initWithJsonString:message.msgContent];
+        NSString* urlString = [messageContent valueForKey:@"video_path_url"];
+        VideoPlayViewController *vc = [[VideoPlayViewController alloc] init];
+        vc.videoUrl = urlString;
+        vc.needDownload = YES;
+        [self presentViewController:vc animated:YES completion:nil];
     }];
     return cell;
 }

@@ -5,7 +5,7 @@ LBS云检索：包括LBS云检索（周边、区域、城市内、详情）；
 
 --------------------------------------------------------------------------------------
 
-iOS 地图 SDK v2.10.0是适用于iOS系统移动设备的矢量地图开发包
+iOS 地图 SDK v3.0.0是适用于iOS系统移动设备的矢量地图开发包
 
 --------------------------------------------------------------------------------------
 
@@ -47,13 +47,69 @@ LBS云检索：支持查询存储在LBS云内的自有数据；
 
 ---------------------------------------------------------------------------------------
 
-【新版提示】
-1.自V2.9.0起，将启用新的地图资源服务，旧地图离线包在新版上不可使用；同时官方不再支持地图离线包下载，所以V2.9.0起，去掉“手动离线导入接口”，SDK离线下载接口维持不变。
-
-2.自V2.9.0起，iOS SDK采用分包形式，旧包无法与新包同时混用，请将之前所有旧包(包含bundle资源)并全部替换为新包。
-3.自V2.9.0起，iOS SDK使用新的矢量地图样式，地图显示更加清新，和百度地图客户端保持一致。
-
-较之v2.9.1，升级功能：
-【 新  增  / 废  弃 】
-   基础地图 1、新增3D-Touch的回调 BMKMapView 新增属性: /// 设定地图是否回调force touch事件，默认为NO，仅适用于支持3D Touch的情况，开启后会回调 - mapview:onForceTouch:force:maximumPossibleForce: @property(nonatomic) BOOL forceTouchEnabled; BMKMapViewDelegate 新增: - (void)mapview:(BMKMapView *)mapView onForceTouch:(CLLocationCoordinate2D)coordinate force:(CGFloat)force maximumPossibleForce:(CGFloat)maximumPossibleForce; 2、新增个性化地图模板，支持黑夜模式、清新蓝等风格地图 BMKMapView 新增方法: + (void)customMapStyle:(NSString*) customMapStyleJsonFilePath; 3、新增设置地图边界区域的方法: BMKMapView 新增属性: ///地图预留边界，默认：UIEdgeInsetsZero。设置后，会根据mapPadding调整logo、比例尺、指南针的位置，以及targetScreenPt(BMKMapStatus.targetScreenPt) @property (nonatomic) UIEdgeInsets mapPadding; 4、开放显示21级地图，但不支持卫星图、热力图、交通路况图层的21级地图。 5、BMKMapType新增BMKMapTypeNone类型：不加载百度地图瓦片，显示为空白地图。和瓦片图功能配合使用，减少加载数据 6、新增限制地图的显示范围的方法 BMKMapView 新增属性: @property (nonatomic) BMKCoordinateRegion limitMapRegion; 7、支持自定义百度logo位置，共支持6个位置，使用枚举类型控制显示的位置 BMKMapView 新增属性: @property (nonatomic) BMKLogoPosition logoPosition; 8、新增禁用所有手势功能 BMKMapView 新增属性: @property(nonatomic) BOOL gesturesEnabled; 9、新增获取指南针大小的方法，并支持更换指南针图片 BMKMapView 新增属性、方法: @property (nonatomic, readonly) CGSize compassSize; - (void)setCompassImage:(UIImage *)image; 10、新增获取比例尺大小的方法 BMKMapView 新增属性: /// 比例尺的宽高 @property (nonatomic, readonly) CGSize mapScaleBarSize; 11、增加自定义定位精度圈的填充颜色和边框 BMKLocationViewDisplayParam 新增属性： ///精度圈 填充颜色 @property (nonatomic, strong) UIColor *accuracyCircleFillColor; ///精度圈 边框颜色 @property (nonatomic, strong) UIColor *accuracyCircleStrokeColor; 12、新增获取矩形范围内所有marker点的方法 BMKMapView 新增方法: - (NSArray *)annotationsInCoordinateBounds:(BMKCoordinateBounds) bounds; 13、BMKMapView废弃接口: +(void)willBackGround;//逻辑由地图SDK控制 +(void)didForeGround;//逻辑由地图SDK控制    检索功能 1、新增骑行规划检索 BMKRouteSearch 新增骑行路线检索方法: - (BOOL)ridingSearch:(BMKRidingRoutePlanOption*) ridingRoutePlanOption; BMKRouteSearchDelegate 新增返回骑行检索结果回调: - (void)onGetRidingRouteResult:(BMKRouteSearch*)searcher result:(BMKRidingRouteResult*)result errorCode:(BMKSearchErrorCode)error; 新增类: BMKRidingRoutePlanOption 骑行查询基础信息类 BMKRidingRouteResult 骑行路线结果类 2、新增行政区边界数据检索 新增类: BMKDistrictSearch 行政区域搜索服务类 BMKDistrictSearchDelegate 行政区域搜索结果Delegate BMKDistrictSearchOption 行政区域检索信息类 BMKDistrictResult 行政区域检索结果类 3、新增驾车、公交、骑行、步行路径规划短串分享检索 BMKShareURLSearch 新增获取路线规划短串分享方法: - (BOOL)requestRoutePlanShareURL:(BMKRoutePlanShareURLOption *)routePlanShareUrlSearchOption; BMKShareURLSearchDelegate 新增返回路线规划分享url结果回调: - (void)onGetRoutePlanShareURLResult:(BMKShareURLSearch *)searcher result:(BMKShareURLResult *)result errorCode:(BMKSearchErrorCode)error;    计算工具 支持调起百度地图客户端骑行、步行导航功能（百度地图App 8.8 以上版本支持） BMKNavigation 新增方法: //调起百度地图客户端骑行导航页面 + (BMKOpenErrorCode)openBaiduMapRideNavigation:(BMKNaviPara*)para; //调起百度地图客户端步行导航页面 + (BMKOpenErrorCode)openBaiduMapWalkNavigation:(BMKNaviPara*)para;  【 修  复 】 1、修复只使用检索时，首次鉴权失败（网络问题），再次发起鉴权无效的问题 2、修复使用地图前使用离线地图，首次安装应用地图白屏的问题 3、修复拖拽地图时，点击到标注，会触发didSelectAnnotationView:的回调，不回调regionDidChangeAnimated的问题
- 4、修复BMKTransitStep 里的stepType中地铁和公交未做区分的问题
+ 【 新版提示 】
+ 1.自v3.0.0起，iOS SDK全面支持ipv6网格
+ 
+ 【 新  增 】
+   基础地图
+ 1、新增室内地图功能
+ 新增室内地图信息类：BMKBaseIndoorMapInfo
+ BMKMapView新增接口:
+ /// 设定地图是否显示室内图（包含室内图标注），默认不显示
+ @property (nonatomic, assign) BOOL baseIndoorMapEnabled;
+ /// 设定室内图标注是否显示，默认YES，仅当显示室内图（baseIndoorMapEnabled为YES）时生效
+ @property (nonatomic, assign) BOOL showIndoorMapPoi;
+ // 设置室内图楼层
+ - (BMKSwitchIndoorFloorError)switchBaseIndoorMapFloor:(NSString*)strFloor withID:(NSString*)strID;
+ // 获取当前聚焦的室内图信息
+ - (BMKBaseIndoorMapInfo*)getFocusedBaseIndoorMapInfo;
+ BMKMapViewDelegate新增接口：
+ //地图进入/移出室内图会调用此接口
+ - (void)mapview:(BMKMapView *)mapView baseIndoorMapWithIn:(BOOL)flag baseIndoorMapInfo:(BMKBaseIndoorMapInfo *)info;
+ 2、普通地图与个性化地图切换可以自由切换，BMKMapView新增接口:
+ + (void)enableCustomMapStyle:(BOOL) enable;
+ 3、个性化地图配置json文件出错时，打印log提示
+ 4、设置mapPadding时可控制地图中心是否跟着移动，BMKMapView新增接口:
+ @property (nonatomic) BOOL updateTargetScreenPtWhenMapPaddingChanged;
+ 5、BMKMapPoi中新增属性：
+ ///点标注的uid，可能为空
+ @property (nonatomic,strong) NSString* uid;
+ 
+   检索功能
+ 1、新增室内POI检索
+ 新增室内POI检索参数信息类：BMKPoiIndoorSearchOption
+ 新增室内POI搜索结果类：BMKPoiIndoorResult
+ 新增室内POI信息类：BMKPoiIndoorInfo
+ BMKPoiSearch新增接口：
+ //poi室内检索
+ - (BOOL)poiIndoorSearch:(BMKPoiIndoorSearchOption*)option;
+ BMKPoiSearchDelegate新增接口：
+ //返回POI室内搜索结果
+- (void)onGetPoiIndoorResult:(BMKPoiSearch*)searcher result:(BMKPoiIndoorResult*)poiIndoorResult errorCode:(BMKSearchErrorCode)errorCode;
+ 2、驾车路线规划结果新增3个属性：打车费用信息、拥堵米数、红路灯个数，BMKDrivingRouteLine新增接口：
+ ///路线红绿灯个数
+ @property (nonatomic, assign) NSInteger lightNum;
+ ///路线拥堵米数，发起请求时需设置参数 drivingRequestTrafficType = BMK_DRIVING_REQUEST_TRAFFICE_TYPE_PATH_AND_TRAFFICE 才有值
+ @property (nonatomic, assign) NSInteger congestionMetres;
+ ///路线预估打车费(元)，负数表示无打车费信息
+ @property (nonatomic, assign) NSInteger taxiFares;
+ 3、busline检索新增参考票价和上下线行信息，BMKBusLineResult新增接口：
+ ///公交线路方向
+ @property (nonatomic, strong) NSString* busLineDirection;
+ ///起步票价
+ @property (nonatomic, assign) CGFloat basicPrice;
+ ///全程票价
+ @property (nonatomic, assign) CGFloat totalPrice;
+ 4、poi检索结果新增是否有全景信息，BMKPoiInfo新增接口：
+ @property (nonatomic, assign) BOOL panoFlag;
+ 
+   计算工具
+ 新增调起百度地图客户端全景功能
+ 新增调起百度地图全景类：BMKOpenPanorama
+ 新增调起百度地图全景参数类：BMKOpenPanoramaOption
+ 新增调起百度地图全景delegate：BMKOpenPanoramaDelegate
+ 
+ 【 修  复 】
+ 1、修复反复添加移除离线瓦片图时偶现的crash问题
+ 2、修复上传AppStore时提示访问私有api:-setOverlayGeometryDelegate:的问题
+ 3、修复地图网络解析时偶现的crash问题

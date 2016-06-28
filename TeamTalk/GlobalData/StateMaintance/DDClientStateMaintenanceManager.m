@@ -99,11 +99,12 @@ static NSInteger const reloginTimeinterval = 5;
                 _reloginTimer = [NSTimer scheduledTimerWithTimeInterval:reloginTimeinterval target:self selector:@selector(p_onReloginTimer:) userInfo:nil repeats:YES];
                 _reloginInterval = 0;
                 [_reloginTimer fire];
+                [RecentUsersViewController shareInstance].title=@"连接中";
             }
         }else
         {
             clientState.userState=DDUserOffLine;
-            [RecentUsersViewController shareInstance].title=@"连接失败";
+            [RecentUsersViewController shareInstance].title=@"未连接";
         }
     }
     //用户状态变化

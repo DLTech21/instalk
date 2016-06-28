@@ -173,7 +173,7 @@
 {
     ViewController *locationController = [[ViewController alloc] init];
     locationController.delegate = self;
-    [self pushViewController:locationController animated:YES];
+    [[ChattingMainViewController shareInstance].navigationController pushViewController:locationController animated:YES];
 }
 
 -(void)choosePicture:(id)sender

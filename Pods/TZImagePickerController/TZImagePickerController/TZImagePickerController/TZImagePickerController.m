@@ -23,6 +23,8 @@
     UIView *_HUDContainer;
     UIActivityIndicatorView *_HUDIndicatorView;
     UILabel *_HUDLable;
+    
+    UIStatusBarStyle _originStatusBarStyle;
 }
 @end
 
@@ -33,9 +35,8 @@
     self.view.backgroundColor = [UIColor whiteColor];
     self.navigationBar.barStyle = UIBarStyleBlack;
     self.navigationBar.translucent = YES;
-    [UIApplication sharedApplication].statusBarStyle = UIStatusBarStyleLightContent;
-    [UIApplication sharedApplication].statusBarHidden = NO;
-    
+    [TZImageManager manager].shouldFixOrientation = NO;
+
     // Default appearance, you can reset these after this method
     // 默认的外观，你可以在这个方法后重置
     self.oKButtonTitleColorNormal   = [UIColor colorWithRed:(83/255.0) green:(179/255.0) blue:(17/255.0) alpha:1.0];
@@ -59,16 +60,35 @@
     [barItem setTitleTextAttributes:textAttrs forState:UIControlStateNormal];
 }
 
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    _originStatusBarStyle = [UIApplication sharedApplication].statusBarStyle;
+    [UIApplication sharedApplication].statusBarStyle = iOS7Later ? UIStatusBarStyleLightContent : UIStatusBarStyleBlackOpaque;
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    [UIApplication sharedApplication].statusBarStyle = _originStatusBarStyle;
+    [self hideProgressHUD];
+}
+
 - (instancetype)initWithMaxImagesCount:(NSInteger)maxImagesCount delegate:(id<TZImagePickerControllerDelegate>)delegate {
     TZAlbumPickerController *albumPickerVc = [[TZAlbumPickerController alloc] init];
     self = [super initWithRootViewController:albumPickerVc];
     if (self) {
         self.maxImagesCount = maxImagesCount > 0 ? maxImagesCount : 9; // Default is 9 / 默认最大可选9张图片
         self.pickerDelegate = delegate;
+        self.selectedModels = [NSMutableArray array];
+        
         // Allow user picking original photo and video, you also can set No after this method
         // 默认准许用户选择原图和视频, 你也可以在这个方法后置为NO
-        _allowPickingOriginalPhoto = YES;
-        _allowPickingVideo = YES;
+        self.allowPickingOriginalPhoto = YES;
+        self.allowPickingVideo = YES;
+        self.allowPickingImage = YES;
+        self.allowTakePicture = YES;
+        self.timeout = 15;
+        self.photoWidth = 828.0;
+        self.photoPreviewMaxWidth = 600;
         
         if (![[TZImageManager manager] authorizationStatusAuthorized]) {
             _tipLable = [[UILabel alloc] init];
@@ -90,6 +110,31 @@
     return self;
 }
 
+/// This init method just for previewing photos / 用这个初始化方法以预览图片
+- (instancetype)initWithSelectedAssets:(NSMutableArray *)selectedAssets selectedPhotos:(NSMutableArray *)selectedPhotos index:(NSInteger)index{
+    TZPhotoPreviewController *previewVc = [[TZPhotoPreviewController alloc] init];
+    self = [super initWithRootViewController:previewVc];
+    if (self) {
+        self.selectedAssets = [NSMutableArray arrayWithArray:selectedAssets];
+        self.allowPickingOriginalPhoto = YES;
+        self.timeout = 15;
+        self.photoWidth = 828.0;
+        self.maxImagesCount = selectedAssets.count;
+        self.photoPreviewMaxWidth = 600;
+        
+        previewVc.photos = [NSMutableArray arrayWithArray:selectedPhotos];
+        previewVc.currentIndex = index;
+        __weak typeof(self) weakSelf = self;
+        [previewVc setOkButtonClickBlockWithPreviewType:^(NSArray<UIImage *> *photos, NSArray *assets, BOOL isSelectOriginalPhoto) {
+            if (weakSelf.didFinishPickingPhotosHandle) {
+                weakSelf.didFinishPickingPhotosHandle(photos,assets,isSelectOriginalPhoto);
+            }
+            [weakSelf dismissViewControllerAnimated:YES completion:nil];
+        }];
+    }
+    return self;
+}
+
 - (void)observeAuthrizationStatusChange {
     if ([[TZImageManager manager] authorizationStatusAuthorized]) {
         [self pushToPhotoPickerVc];
@@ -103,7 +148,7 @@
     _pushToPhotoPickerVc = YES;
     if (_pushToPhotoPickerVc) {
         TZPhotoPickerController *photoPickerVc = [[TZPhotoPickerController alloc] init];
-        [[TZImageManager manager] getCameraRollAlbum:self.allowPickingVideo completion:^(TZAlbumModel *model) {
+        [[TZImageManager manager] getCameraRollAlbum:self.allowPickingVideo allowPickingImage:self.allowPickingImage completion:^(TZAlbumModel *model) {
             photoPickerVc.model = model;
             [self pushViewController:photoPickerVc animated:YES];
             _pushToPhotoPickerVc = NO;
@@ -149,6 +194,11 @@
     }
     [_HUDIndicatorView startAnimating];
     [[UIApplication sharedApplication].keyWindow addSubview:_progressHUD];
+    
+    // if over time, dismiss HUD automatic
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(self.timeout * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self hideProgressHUD];
+    });
 }
 
 - (void)hideProgressHUD {
@@ -158,13 +208,56 @@
     }
 }
 
+- (void)setTimeout:(NSInteger)timeout {
+    _timeout = timeout;
+    if (timeout < 5) {
+        _timeout = 5;
+    } else if (_timeout > 60) {
+        _timeout = 60;
+    }
+}
+
+- (void)setPhotoPreviewMaxWidth:(CGFloat)photoPreviewMaxWidth {
+    _photoPreviewMaxWidth = photoPreviewMaxWidth;
+    if (photoPreviewMaxWidth > 800) {
+        _photoPreviewMaxWidth = 800;
+    } else if (photoPreviewMaxWidth < 500) {
+        _photoPreviewMaxWidth = 500;
+    }
+    [TZImageManager manager].photoPreviewMaxWidth = _photoPreviewMaxWidth;
+}
+
+- (void)setSelectedAssets:(NSMutableArray *)selectedAssets {
+    _selectedAssets = selectedAssets;
+    _selectedModels = [NSMutableArray array];
+    for (id asset in selectedAssets) {
+        TZAssetModel *model = [TZAssetModel modelWithAsset:asset type:TZAssetModelMediaTypePhoto];
+        model.isSelected = YES;
+        [_selectedModels addObject:model];
+    }
+}
+
+- (void)setAllowPickingImage:(BOOL)allowPickingImage {
+    _allowPickingImage = allowPickingImage;
+    NSString *allowPickingImageStr = _allowPickingImage ? @"1" : @"0";
+    [[NSUserDefaults standardUserDefaults] setObject:allowPickingImageStr forKey:@"tz_allowPickingImage"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
+- (void)setAllowPickingVideo:(BOOL)allowPickingVideo {
+    _allowPickingVideo = allowPickingVideo;
+    NSString *allowPickingVideoStr = _allowPickingVideo ? @"1" : @"0";
+    [[NSUserDefaults standardUserDefaults] setObject:allowPickingVideoStr forKey:@"tz_allowPickingVideo"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
 - (void)pushViewController:(UIViewController *)viewController animated:(BOOL)animated {
     if (iOS7Later) viewController.automaticallyAdjustsScrollViewInsets = NO;
     if (_timer) { [_timer invalidate]; _timer = nil;}
     
     if (self.childViewControllers.count > 0) {
-        UIButton *backButton = [[UIButton alloc] initWithFrame:CGRectMake(3, 0, 44, 44)];
-        [backButton setImage:[UIImage imageNamed:@"navi_back"] forState:UIControlStateNormal];
+        UIButton *backButton = [[UIButton alloc] initWithFrame:CGRectMake(3, 0, 50, 44)];
+        [backButton setImage:[UIImage imageNamedFromMyBundle:@"navi_back.png"] forState:UIControlStateNormal];
         backButton.imageEdgeInsets = UIEdgeInsetsMake(0, -5, 0, 0);
         [backButton setTitle:@"返回" forState:UIControlStateNormal];
         backButton.titleLabel.font = [UIFont systemFontOfSize:15];
@@ -179,9 +272,8 @@
 
 @interface TZAlbumPickerController ()<UITableViewDataSource,UITableViewDelegate> {
     UITableView *_tableView;
-    NSMutableArray *_albumArr;
 }
-
+@property (nonatomic, strong) NSMutableArray *albumArr;
 @end
 
 @implementation TZAlbumPickerController
@@ -198,24 +290,36 @@
     [super viewWillAppear:animated];
     TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
     [imagePickerVc hideProgressHUD];
-    if (_albumArr) return;
-    [self configTableView];
+    if (_albumArr) {
+        for (TZAlbumModel *albumModel in _albumArr) {
+            albumModel.selectedModels = imagePickerVc.selectedModels;
+        }
+        [_tableView reloadData];
+    } else {
+        [self configTableView];
+    }
 }
 
 - (void)configTableView {
     TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
-    [[TZImageManager manager] getAllAlbums:imagePickerVc.allowPickingVideo completion:^(NSArray<TZAlbumModel *> *models) {
+    [[TZImageManager manager] getAllAlbums:imagePickerVc.allowPickingVideo allowPickingImage:imagePickerVc.allowPickingImage completion:^(NSArray<TZAlbumModel *> *models) {
         _albumArr = [NSMutableArray arrayWithArray:models];
-        
-        CGFloat top = 44;
-        if (iOS7Later) top += 20;
-        _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, top, self.view.tz_width, self.view.tz_height - top) style:UITableViewStylePlain];
-        _tableView.rowHeight = 70;
-        _tableView.tableFooterView = [[UIView alloc] init];
-        _tableView.dataSource = self;
-        _tableView.delegate = self;
-        [_tableView registerNib:[UINib nibWithNibName:@"TZAlbumCell" bundle:nil] forCellReuseIdentifier:@"TZAlbumCell"];
-        [self.view addSubview:_tableView];
+        for (TZAlbumModel *albumModel in _albumArr) {
+            albumModel.selectedModels = imagePickerVc.selectedModels;
+        }
+        if (!_tableView) {
+            CGFloat top = 44;
+            if (iOS7Later) top += 20;
+            _tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, top, self.view.tz_width, self.view.tz_height - top) style:UITableViewStylePlain];
+            _tableView.rowHeight = 70;
+            _tableView.tableFooterView = [[UIView alloc] init];
+            _tableView.dataSource = self;
+            _tableView.delegate = self;
+            [_tableView registerClass:[TZAlbumCell class] forCellReuseIdentifier:@"TZAlbumCell"];
+            [self.view addSubview:_tableView];
+        } else {
+            [_tableView reloadData];
+        }
     }];
 }
 
@@ -240,15 +344,38 @@
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     TZAlbumCell *cell = [tableView dequeueReusableCellWithIdentifier:@"TZAlbumCell"];
+    TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
+    cell.selectedCountButton.backgroundColor = imagePickerVc.oKButtonTitleColorNormal;
     cell.model = _albumArr[indexPath.row];
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     return cell;
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     TZPhotoPickerController *photoPickerVc = [[TZPhotoPickerController alloc] init];
-    photoPickerVc.model = _albumArr[indexPath.row];
+    TZAlbumModel *model = _albumArr[indexPath.row];
+    photoPickerVc.model = model;
+    __weak typeof(self) weakSelf = self;
+    [photoPickerVc setBackButtonClickHandle:^(TZAlbumModel *model) {
+        [weakSelf.albumArr replaceObjectAtIndex:indexPath.row withObject:model];
+    }];
     [self.navigationController pushViewController:photoPickerVc animated:YES];
     [tableView deselectRowAtIndexPath:indexPath animated:NO];
+}
+
+@end
+
+
+@implementation UIImage (MyBundle)
+
++ (UIImage *)imageNamedFromMyBundle:(NSString *)name {
+    UIImage *image = [UIImage imageNamed:[@"TZImagePickerController.bundle" stringByAppendingPathComponent:name]];
+    if (image) {
+        return image;
+    } else {
+        image = [UIImage imageNamed:[@"Frameworks/TZImagePickerController.framework/TZImagePickerController.bundle" stringByAppendingPathComponent:name]];
+        return image;
+    }
 }
 
 @end

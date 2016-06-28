@@ -256,6 +256,9 @@ CGFloat const dd_bubbleUpDown = 20;                //气泡到上下边缘的距
         case DDMEssageTypeLocation:
             showMenu = showMenu | DDShowDelete | DDShowRepost ;
             break;
+        case DDMEssageTypeVideo:
+            showMenu = showMenu | DDShowDelete | DDShowRepost ;
+            break;
         default:
             break;
     }

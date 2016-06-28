@@ -91,13 +91,20 @@ static uint32_t seqNo = 0;
         NSArray* object = @[TheRuntime.user.objID,session.sessionID,data,@(message.msgType),@(message.msgID)];
         if ([message isImageMessage]) {
             session.lastMsg=@"[图片]";
-        }else if ([message isVoiceMessage])
+        }
+        else if ([message isVoiceMessage])
         {
             session.lastMsg=@"[语音]";
-        }else if ([message isLocationMessage])
+        }
+        else if ([message isLocationMessage])
         {
             session.lastMsg=@"[位置]";
-        }else
+        }
+        else if ([message isVideoMessage])
+        {
+            session.lastMsg=@"[视频]";
+        }
+        else
         {
             session.lastMsg=message.msgContent;
         }
